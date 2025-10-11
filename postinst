@@ -1,0 +1,14 @@
+#!/bin/bash
+if cat /sys/firmware/devicetree/base/model | grep -iqE 'rk3399.*vivid' || dmesg | grep -iqE 'vivid.*rk3399'; then
+  GLX_INFO_OUTPUT=$(glxinfo -B 2>&1)
+  if ! echo "$GLX_INFO_OUTPUT" | grep -q "Mali T860"; then
+    SCRIPT_URL="https://github.com/uugear/vu_install/raw/main/enable_gpu.sh"
+	echo '==========================================================================='
+    echo 'GPSDR++ has been installed.'
+    echo 'It seems your Vivid Unit has not enabled its GPU yet.'
+    echo 'It is recommended to do so because GPSDR++ needs the GPU for faster rendering.'
+    echo 'The CPU usage will be very high when running GPSDR++ without enabling GPU.'
+	echo "You may download and run $SCRIPT_URL to enable GPU."
+	echo '==========================================================================='
+  fi
+fi
