@@ -46,7 +46,7 @@ namespace credits {
 			"We deeply appreciate their dedication and hard work, which form the foundation of this software.\n"
 			"For more information about SDR++, visit https://github.com/AlexandreRouma/SDRPlusPlus\n\n"
 			"GPSDR++ is based on SDR++ v1.2.0 and has been modified by Dun Cat B.V.(UUGear) to support VU GPSDR hardware.\n"
-			"The source code of GPSDR++ can be found at https://github.com/uugear/GPSDRPlusPlus"
+			"The source code of GPSDR++ can be found at https://github.com/uugear/GPSDRPP"
 			);
 
 			ImGui::Spacing();
