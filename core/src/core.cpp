@@ -150,8 +150,8 @@ int gpsdrpp_main(int argc, char* argv[]) {
         return 0;
     }
     
-    // Tell GPS to output 24MHz timepulse, align to UTC if possible
-    core::gps.sendData((unsigned char *)Gps::UBX_CFG_TP5, Gps::UBX_CFG_TP5_SIZE);
+    // Tell GPS to output 24MHz timepulse
+    core::gps.outputReferenceClock(false);
 
     bool serverMode = (bool)core::args["server"];
 
@@ -204,6 +204,9 @@ int gpsdrpp_main(int argc, char* argv[]) {
     
     // Side Bar
     defConfig["selectedPage"] = 0;
+    
+    // GPS Page
+    defConfig["lockToGpsFreq"] = false;
     
     // CLK OUT Page
     defConfig["clkOut"] = true;

@@ -51,14 +51,14 @@ void DeviceRefreshWorker::workerLoop() {
 						executeCommand("vgp set 4B2 0");
 						delay(500);
 						
-						// Tell GPS to output 24MHz
-						try {
-							core::gps.sendData((unsigned char *)Gps::UBX_CFG_TP5, Gps::UBX_CFG_TP5_SIZE);
-						} catch (const std::exception& e) {
-							std::cerr << "GPS sendData failed: " << e.what() << std::endl;
-						}
-						
-						delay(500);
+                        // Tell GPS to output 24MHz
+                        core::configManager.acquire();
+                        bool lockToGpsFreq = core::configManager.conf["lockToGpsFreq"];
+                        core::configManager.release(true);
+                        if (lockToGpsFreq) {
+                            core::gps.outputReferenceClock(lockToGpsFreq);
+                        }
+                        delay(500);
 						
 						// Initialize Si5351
 						try {

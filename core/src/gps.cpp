@@ -582,3 +582,7 @@ void Gps::readerLoop() {
 int32_t Gps::getProcessedNMEA() {
     return processedNMEA;
 }
+
+void Gps::outputReferenceClock(bool lockToGpsFreq) {
+    sendData((unsigned char *)(lockToGpsFreq ? UBX_CFG_TP5 : UBX_CFG_TP5_NO_SYNC), UBX_CFG_TP5_SIZE);
+}

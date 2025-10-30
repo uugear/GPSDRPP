@@ -31,16 +31,26 @@ const char* GPSPage::getLabel() {
 }
 
 void GPSPage::init() {
-    
+    core::configManager.acquire();
+    lockToGpsFreq = core::configManager.conf["lockToGpsFreq"];
+    core::configManager.release(true);
+    if (lockToGpsFreq) {
+        core::gps.outputReferenceClock(lockToGpsFreq);
+    }
 }
 
 void GPSPage::deinit() {
-
+    core::configManager.acquire();
+    core::configManager.conf["lockToGpsFreq"] = lockToGpsFreq;
+	core::configManager.release(true);
 }
 
 void GPSPage::draw() {
     const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing() + 10;
     if (ImGui::BeginChild("GPS_Content", ImVec2(0, -footer_height_to_reserve), true)) {
+        if (ImGui::Checkbox("Sync to 24MHz", &lockToGpsFreq)) {
+            core::gps.outputReferenceClock(lockToGpsFreq);
+        }
         ImGui::Text("Status: ");
         ImGui::SameLine();
         if (core::gps.getFixQuality() != 0) {
