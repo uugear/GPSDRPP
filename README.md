@@ -10,11 +10,11 @@ GPSDR++ will start as a full-screen application, and its interface looks like th
 
 ![GPSDR++ Layout](https://www.uugear.com/wordpress/wp-content/uploads/2025/09/GPSDRPP_layout.jpg)
 
-The toolbar at the top contains controls for showing/adjusting SDR parameters (on/off, volume, frequency, tuning mode, SNR etc.). The SDR++ menu is hidden by default — you can tap the button in the upper-left corner to toggle the visibility of the menu and/or sidebar.
+The toolbar at the top contains controls for showing/adjusting SDR parameters (on/off, volume, frequency, tuning mode, SNR etc.). The SDR++ menu is hidden by default  you can tap the button in the upper-left corner to toggle the visibility of the menu and/or sidebar.
 
 The sidebar provides several functional pages, such as Radio, Mode S/ADS-B, GPS, and CLK OUT. You can switch between these pages using the two navigation buttons at the bottom of the sidebar.
 
-The main view contains two tabs — Waterfall and Map — and you can switch between them by tapping on the tab header.
+The main view contains two tabs  Waterfall and Map  and you can switch between them by tapping on the tab header.
 
 By default, when you are facing the screen:
 - The left encoder controls the zoom level of the waterfall view.

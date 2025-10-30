@@ -77,23 +77,23 @@ void DeviceRefreshWorker::workerLoop() {
 				}
 			}
         } catch (const std::exception& e) {
-            std::cerr << "Exception in worker thread: " << e.what() << std::endl;
+            std::cerr << "Exception in DeviceRefreshWorker thread: " << e.what() << std::endl;
         }
 		delay(2000);
     }
     
-    std::cout << "Worker thread stopped." << std::endl;
+    std::cout << "DeviceRefreshWorker thread stopped." << std::endl;
 }
 
 void DeviceRefreshWorker::start() {
     if (workerThread.joinable()) {
-        std::cerr << "Worker thread is already running!" << std::endl;
+        std::cerr << "DeviceRefreshWorker thread is already running!" << std::endl;
         return;
     }
     
     shouldStop.store(false);
     workerThread = std::thread(&DeviceRefreshWorker::workerLoop, this);
-    std::cout << "Device refresh worker thread started." << std::endl;
+    std::cout << "DeviceRefreshWorker thread started." << std::endl;
 }
 
 void DeviceRefreshWorker::stop() {
@@ -101,7 +101,7 @@ void DeviceRefreshWorker::stop() {
     
     if (workerThread.joinable()) {
         workerThread.join();
-        std::cout << "Device refresh worker thread joined." << std::endl;
+        std::cout << "DeviceRefreshWorker thread joined." << std::endl;
     }
 }
 
