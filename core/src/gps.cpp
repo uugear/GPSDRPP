@@ -584,5 +584,6 @@ int32_t Gps::getProcessedNMEA() {
 }
 
 void Gps::outputReferenceClock(bool lockToGpsFreq) {
+    flog::info("Request GPS to output referernce clock, lockToGpsFreq={0}", lockToGpsFreq);
     sendData((unsigned char *)(lockToGpsFreq ? UBX_CFG_TP5 : UBX_CFG_TP5_NO_SYNC), UBX_CFG_TP5_SIZE);
 }

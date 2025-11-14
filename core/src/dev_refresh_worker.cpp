@@ -8,6 +8,7 @@
 #include <linux/i2c-dev.h>
 #include <core.h>
 #include <rtl_sdr_source_interface.h>
+#include <utils/flog.h>
 
 
 bool DeviceRefreshWorker::checkI2CDevice(int bus, int address) {
@@ -15,7 +16,7 @@ bool DeviceRefreshWorker::checkI2CDevice(int bus, int address) {
     snprintf(filename, sizeof(filename), "/dev/i2c-%d", bus);
     int file = open(filename, O_RDWR);
     if (file < 0) {
-        std::cerr << "Failed to open I2C bus " << bus << std::endl;
+        flog::error("Failed to open I2C bus {0}", bus);
         return false;
     }
     bool deviceExists = (ioctl(file, I2C_SLAVE, address) >= 0);
@@ -30,7 +31,7 @@ void DeviceRefreshWorker::delay(int milliseconds) {
 int DeviceRefreshWorker::executeCommand(const char* command) {
     int result = system(command);
     if (result != 0) {
-        std::cerr << "Command failed: " << command << " (exit code: " << result << ")" << std::endl;
+        flog::error("Command failed: {0} (exit code: {1})", command, result);
     }
     return result;
 }
@@ -43,7 +44,7 @@ void DeviceRefreshWorker::workerLoop() {
 				core::modComManager.callInterface("RTL-SDR", RTL_SDR_SOURCE_IFACE_CMD_GET_DEVICE_COUNT, NULL, &count);
 				if (count == 0) {
 					if (checkI2CDevice(2, 0x0b)) {
-						std::cout << "VU GPSDR device found on I2C bus 2, make a power cycle now..." << std::endl;
+					    flog::info("VU GPSDR device found on I2C bus 2, make a power cycle now...");
 						
 						executeCommand("vgp set 4B2 1");
 						delay(2000);
@@ -52,11 +53,15 @@ void DeviceRefreshWorker::workerLoop() {
 						delay(500);
 						
                         // Tell GPS to output 24MHz
-                        core::configManager.acquire();
-                        bool lockToGpsFreq = core::configManager.conf["lockToGpsFreq"];
-                        core::configManager.release(true);
-                        if (lockToGpsFreq) {
+                        try {
+                            core::configManager.acquire();
+                            bool lockToGpsFreq = core::configManager.conf["lockToGpsFreq"];
+                            core::configManager.release(true);
                             core::gps.outputReferenceClock(lockToGpsFreq);
+                        } catch (const std::exception& e) {
+                            flog::error("GPS sendData failed: {0}", e.what());
+                        	delay(500);
+                        	continue;
                         }
                         delay(500);
 						
@@ -64,11 +69,12 @@ void DeviceRefreshWorker::workerLoop() {
 						try {
 							core::si5351.initialize();
 						} catch (const std::exception& e) {
-							std::cerr << "Si5351 initialize failed: " << e.what() << std::endl;
+							flog::error("Si5351 initialize failed: {0}", e.what());
+							delay(500);
+							continue;
 						}
 						
-						std::cout << "Power cycle completed." << std::endl;
-						
+						flog::info("Power cycle completed.");
 						delay(500);
 						
 						// Refresh device list
@@ -77,23 +83,22 @@ void DeviceRefreshWorker::workerLoop() {
 				}
 			}
         } catch (const std::exception& e) {
-            std::cerr << "Exception in DeviceRefreshWorker thread: " << e.what() << std::endl;
+            flog::error("Exception in DeviceRefreshWorker thread: {0}", e.what());
         }
 		delay(2000);
     }
     
-    std::cout << "DeviceRefreshWorker thread stopped." << std::endl;
+    flog::info("DeviceRefreshWorker thread stopped.");
 }
 
 void DeviceRefreshWorker::start() {
     if (workerThread.joinable()) {
-        std::cerr << "DeviceRefreshWorker thread is already running!" << std::endl;
+        flog::error("DeviceRefreshWorker thread is already running!");
         return;
     }
-    
     shouldStop.store(false);
     workerThread = std::thread(&DeviceRefreshWorker::workerLoop, this);
-    std::cout << "DeviceRefreshWorker thread started." << std::endl;
+    flog::info("DeviceRefreshWorker thread started.");
 }
 
 void DeviceRefreshWorker::stop() {
@@ -101,7 +106,7 @@ void DeviceRefreshWorker::stop() {
     
     if (workerThread.joinable()) {
         workerThread.join();
-        std::cout << "DeviceRefreshWorker thread joined." << std::endl;
+        flog::info("DeviceRefreshWorker thread joined.");
     }
 }
 
