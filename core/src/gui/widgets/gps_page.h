@@ -21,6 +21,7 @@ public:
 
 private:
     void drawSatelliteTable();
-    
+
+    bool lockToGpsFreq = false;    
     LoadingAnimation loader;
 };
