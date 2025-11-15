@@ -18,4 +18,7 @@ public:
 private:
 	RadioPage();
     ~RadioPage();
+    void controlLNA();
+    
+    bool hfLNA;
 };

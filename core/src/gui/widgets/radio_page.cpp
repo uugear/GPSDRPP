@@ -18,7 +18,10 @@ const char* RadioPage::getLabel() {
 }
 
 void RadioPage::init() {
-	
+    core::configManager.acquire();
+    hfLNA = core::configManager.conf["hfLNA"];
+    core::configManager.release(true);
+    controlLNA();
 }
 
 void RadioPage::deinit() {
@@ -106,4 +109,21 @@ void RadioPage::draw() {
         ImGui::Columns(1);
 		ImGui::PopStyleVar();
 	}
+	
+	if (core::upConverter.isEnabled()) {
+    	if (ImGui::Checkbox("LNA for HF", &hfLNA)) {
+    	    controlLNA();
+        }
+    }
+}
+
+
+void RadioPage::controlLNA() {
+    if (hfLNA) {
+        system("vgp set 4B4 0");
+       	system("vgp set 4D6 1");
+    } else {
+    	system("vgp set 4B4 1");
+       	system("vgp set 4D6 0");
+    }
 }

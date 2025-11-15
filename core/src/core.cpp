@@ -43,7 +43,15 @@ namespace core {
     	system("vgp alt 4B2 0");
     	system("vgp mode 4B2 OUT");
     	system("vgp set 4B2 0");
+    	
+    	system("vgp alt 4B4 0");
+    	system("vgp mode 4B4 OUT");
+    	system("vgp set 4B4 1");
 		
+		system("vgp alt 4D6 0");
+    	system("vgp mode 4D6 OUT");
+    	system("vgp set 4D6 0");
+
     	// make sure user can access I2C device
     	flog::info("Check permissions for accessing I2C device...");
     	FILE* fp = fopen(GPS_I2C_BUS, "r+");
@@ -204,6 +212,9 @@ int gpsdrpp_main(int argc, char* argv[]) {
     
     // Side Bar
     defConfig["selectedPage"] = 0;
+    
+    // Radio Page
+    defConfig["hfLNA"] = true;
     
     // GPS Page
     defConfig["lockToGpsFreq"] = false;
