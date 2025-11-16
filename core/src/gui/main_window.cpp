@@ -428,11 +428,14 @@ void MainWindow::draw() {
     sigpath::sinkManager.showVolumeSlider(gui::waterfall.selectedVFO, "##_sdrpp_main_volume_", 238 * style::uiScale, btnSize.y, 5, true);
 
 	// Frequency select
+    if (freqSelectLocked) { style::beginDisabled();}
     ImGui::SameLine();
     ImGui::SetCursorPosY(origY);
     gui::freqSelect.draw();
+    if (freqSelectLocked) { style::endDisabled();}
 
 	// Tuning mode button
+    if (tuningModeLocked) { style::beginDisabled();}
     ImGui::SameLine();
     ImGui::SetCursorPosY(origY);
     if (tuningMode == tuner::TUNER_MODE_CENTER) {
@@ -458,6 +461,7 @@ void MainWindow::draw() {
         }
         ImGui::PopID();
     }
+    if (tuningModeLocked) { style::endDisabled(); }
 
 	// SNR meter
     ImGui::SameLine();
@@ -600,4 +604,8 @@ void MainWindow::setFirstMenuRender() {
 
 int MainWindow::getTuningMode() {
     return tuningMode;
+}
+
+void MainWindow::setTuningMode(int mode) {
+    tuningMode = mode;
 }

@@ -466,30 +466,76 @@ void MapView::draw() {
 		ImVec2 btnSize(CONTROL_BUTTON_SIZE, CONTROL_BUTTON_SIZE);
 		ImVec2 ctrlPos = ImVec2(availableRegion.x - CONTROL_BUTTON_SIZE - CONTROL_BUTTON_MARGIN, CONTROL_BUTTON_MARGIN);
 		ImGui::SetCursorPos(ctrlPos);
-		if (ImGui::ImageButton(icons::LOCATE, btnSize, ImVec2(0, 0), ImVec2(1, 1), 5, ImVec4(0, 0, 0, 0))) {
-			prevPanLon = panLon = 0.0f;
-			prevPanLat = panLat = 0.0f;
+
+        // Center location
+        if (ImGui::ImageButton(icons::LOCATE, btnSize, ImVec2(0, 0), ImVec2(1, 1), 5, ImVec4(0, 0, 0, 0))) {
+            ImVec2 availableRegion = ImGui::GetContentRegionAvail();
+            ImVec2 screenCenter = ImVec2(availableRegion.x * 0.5f, availableRegion.y * 0.5f);
+            panLon = screenCenter.x - ((availableRegion.x - TILE_WIDTH) * 0.5f) - pxOffsetX;
+            panLat = screenCenter.y - ((availableRegion.y - TILE_HEIGHT) * 0.5f) - pxOffsetY;
+            prevPanLon = panLon;
+            prevPanLat = panLat;
+            core::configManager.acquire();
+            core::configManager.conf["panLon"] = panLon;
+            core::configManager.conf["panLat"] = panLat;
+            core::configManager.release(true);
 		}
-		ctrlPos.y += CONTROL_BUTTON_SIZE + CONTROL_BUTTON_MARGIN;
-		ImGui::SetCursorPos(ctrlPos);
-		if (ImGui::ImageButton(icons::ZOOM_IN, btnSize, ImVec2(0, 0), ImVec2(1, 1), 5, ImVec4(0, 0, 0, 0), zoom < 19 ? ImVec4(0, 0, 0, 1) : ImVec4(0, 0, 0, 0.3))) {
-			if (zoom < 19) {
-				zoom ++;
-				core::configManager.acquire();
-				core::configManager.conf["zoom"] = zoom;
-				core::configManager.release(true);
-			}
-		}
-		ctrlPos.y += CONTROL_BUTTON_SIZE + CONTROL_BUTTON_MARGIN;
-		ImGui::SetCursorPos(ctrlPos);
-		if (ImGui::ImageButton(icons::ZOOM_OUT, btnSize, ImVec2(0, 0), ImVec2(1, 1), 5, ImVec4(0, 0, 0, 0), zoom > 1 ? ImVec4(0, 0, 0, 1) : ImVec4(0, 0, 0, 0.3))) {
-			if (zoom > 1) {
-				zoom --;
-				core::configManager.acquire();
-				core::configManager.conf["zoom"] = zoom;
-				core::configManager.release(true);
-			}
-		}
+
+        // Zoom in
+        ctrlPos.y += CONTROL_BUTTON_SIZE + CONTROL_BUTTON_MARGIN;
+        ImGui::SetCursorPos(ctrlPos);
+        if (ImGui::ImageButton(icons::ZOOM_IN, btnSize, ImVec2(0, 0), ImVec2(1, 1), 5, ImVec4(0, 0, 0, 0), zoom < 19 ? ImVec4(0, 0, 0, 1) : ImVec4(0, 0, 0, 0.3))) {
+            if (zoom < 19) {
+                ImVec2 screenCenter = ImVec2(availableRegion.x * 0.5f, availableRegion.y * 0.5f);
+                ImVec2 tileScreenPos = ImVec2(offsetX, offsetY);
+                float centerOffsetFromGPSX = screenCenter.x - (tileScreenPos.x + pxOffsetX);
+                float centerOffsetFromGPSY = screenCenter.y - (tileScreenPos.y + pxOffsetY);
+                zoom++;
+                centerOffsetFromGPSX *= 2.0f;
+                centerOffsetFromGPSY *= 2.0f;
+                int newTileX, newTileY, newPxOffsetX, newPxOffsetY;
+                latLonToTilePixel(latitude, longitude, newTileX, newTileY, newPxOffsetX, newPxOffsetY);
+                float newTileDefaultX = (availableRegion.x - TILE_WIDTH) * 0.5f;
+                float newTileDefaultY = (availableRegion.y - TILE_HEIGHT) * 0.5f;
+                panLon = screenCenter.x - newTileDefaultX - newPxOffsetX - centerOffsetFromGPSX;
+                panLat = screenCenter.y - newTileDefaultY - newPxOffsetY - centerOffsetFromGPSY;
+                prevPanLon = panLon;
+                prevPanLat = panLat;
+                core::configManager.acquire();
+                core::configManager.conf["zoom"] = zoom;
+                core::configManager.conf["panLon"] = panLon;
+                core::configManager.conf["panLat"] = panLat;
+                core::configManager.release(true);
+            }
+        }
+
+        // Zoom out
+        ctrlPos.y += CONTROL_BUTTON_SIZE + CONTROL_BUTTON_MARGIN;
+        ImGui::SetCursorPos(ctrlPos);
+        if (ImGui::ImageButton(icons::ZOOM_OUT, btnSize, ImVec2(0, 0), ImVec2(1, 1), 5, ImVec4(0, 0, 0, 0), zoom > 1 ? ImVec4(0, 0, 0, 1) : ImVec4(0, 0, 0, 0.3))) {
+            if (zoom > 1) {
+                ImVec2 screenCenter = ImVec2(availableRegion.x * 0.5f, availableRegion.y * 0.5f);
+                ImVec2 tileScreenPos = ImVec2(offsetX, offsetY);
+                float centerOffsetFromGPSX = screenCenter.x - (tileScreenPos.x + pxOffsetX);
+                float centerOffsetFromGPSY = screenCenter.y - (tileScreenPos.y + pxOffsetY);
+                zoom--;
+                centerOffsetFromGPSX *= 0.5f;
+                centerOffsetFromGPSY *= 0.5f;
+                int newTileX, newTileY, newPxOffsetX, newPxOffsetY;
+                latLonToTilePixel(latitude, longitude, newTileX, newTileY, newPxOffsetX, newPxOffsetY);
+                float newTileDefaultX = (availableRegion.x - TILE_WIDTH) * 0.5f;
+                float newTileDefaultY = (availableRegion.y - TILE_HEIGHT) * 0.5f;
+                panLon = screenCenter.x - newTileDefaultX - newPxOffsetX - centerOffsetFromGPSX;
+                panLat = screenCenter.y - newTileDefaultY - newPxOffsetY - centerOffsetFromGPSY;
+                prevPanLon = panLon;
+                prevPanLat = panLat;
+                core::configManager.acquire();
+                core::configManager.conf["zoom"] = zoom;
+                core::configManager.conf["panLon"] = panLon;
+                core::configManager.conf["panLat"] = panLat;
+                core::configManager.release(true);
+            }
+        }
 		
 		// OpenStreetMap attribution
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));

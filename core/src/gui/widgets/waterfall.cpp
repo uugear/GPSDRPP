@@ -887,7 +887,7 @@ namespace ImGui {
         window->DrawList->AddRect(widgetPos, widgetEndPos, IM_COL32(50, 50, 50, 255), 0.0, 0, style::uiScale);
         //window->DrawList->AddLine(ImVec2(widgetPos.x, freqAreaMax.y), ImVec2(widgetPos.x + widgetSize.x, freqAreaMax.y), IM_COL32(50, 50, 50, 255), style::uiScale);
 
-        if (!gui::mainWindow.lockWaterfallControls) {
+        if (!gui::mainWindow.lockWaterfallControls && !gui::mainWindow.waterfallLocked) {
             inputHandled = false;
             InputHandlerArgs args;
             args.fftRectMin = fftAreaMin;

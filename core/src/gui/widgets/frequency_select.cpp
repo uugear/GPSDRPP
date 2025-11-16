@@ -132,7 +132,7 @@ void FrequencySelect::draw() {
         }
     }
 
-    if (!gui::mainWindow.lockWaterfallControls) {
+    if (!gui::mainWindow.lockWaterfallControls && !gui::mainWindow.freqSelectLocked) {
         ImVec2 mousePos = ImGui::GetMousePos();
         bool leftClick = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
         bool rightClick = ImGui::IsMouseClicked(ImGuiMouseButton_Right);

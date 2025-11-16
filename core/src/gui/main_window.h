@@ -30,10 +30,14 @@ public:
 
     bool lockWaterfallControls = false;
     bool playButtonLocked = false;
+    bool freqSelectLocked = false;
+    bool tuningModeLocked = false;
+    bool waterfallLocked = false;
 
     Event<bool> onPlayStateChange;
     
     int getTuningMode();
+    void setTuningMode(int mode);
 
 private:
     static void vfoAddedHandler(VFOManager::VFO* vfo, void* ctx);

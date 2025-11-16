@@ -73,29 +73,41 @@ public:
 private:
 	static void onStart(ModeSDecoderModule* _this) {
 		_this->rtlSdrWasRunning = gui::mainWindow.isPlaying();
-		if (_this->rtlSdrWasRunning) {
-			gui::mainWindow.setPlayState(false);
-		}
 
-		if (sigpath::vfoManager.vfoExists("Radio")) {
-			_this->radioWasEnabled = true;
-			core::moduleManager.disableInstance("Radio");
-		}
-
-		core::modComManager.callInterface("RTL-SDR", RTL_SDR_SOURCE_IFACE_CMD_GET_SAMPLE_RATE_INDEX, NULL, &_this->oldSampleRateId);
+		core::modComManager.callInterface("RTL-SDR", RTL_SDR_SOURCE_IFACE_CMD_GET_SAMPLE_RATE_INDEX, NULL, &_this->savedSampleRateId);
 		int newSampleRateId = 5;    // Index for 2MHz in RTLSDRSource's sampleRates
 		core::modComManager.callInterface("RTL-SDR", RTL_SDR_SOURCE_IFACE_CMD_SET_SAMPLE_RATE_INDEX, &newSampleRateId, NULL);
 
-		_this->oldTuningFreq = gui::waterfall.getCenterFrequency();
-		gui::waterfall.setCenterFrequency(MODE_S_DEFAULT_FREQ);
-		gui::waterfall.centerFreqMoved = true;
+        _this->savedSelectedVFO = gui::waterfall.selectedVFO;
+        _this->savedFreq = gui::freqSelect.frequency;
+        _this->savedTuningMode = gui::mainWindow.getTuningMode();
+        if (gui::waterfall.selectedVFO != "") {
+            ImGui::WaterfallVFO* vfo = gui::waterfall.vfos[gui::waterfall.selectedVFO];
+            _this->savedSelectedVFOOffset = vfo->generalOffset;
+        }
 
-		_this->decoder.init(ModeSPage::getInstance().getContext(), sigpath::sourceManager.getSelectedSource()->stream);
-		_this->decoder.start();
+        gui::mainWindow.setTuningMode(tuner::TUNER_MODE_CENTER);
+        gui::mainWindow.waterfallLocked = true;
+        gui::mainWindow.freqSelectLocked = true;
+        gui::mainWindow.tuningModeLocked = true;
 
-		gui::mainWindow.setPlayState(true);
-		
-		ModeSPage::getInstance().addLog("Start");
+        if (_this->rtlSdrWasRunning) {  
+            gui::mainWindow.setPlayState(false);  
+        }  
+
+        if (sigpath::vfoManager.vfoExists("Radio")) {  
+            _this->radioWasEnabled = true;  
+            core::moduleManager.disableInstance("Radio");  
+        }  
+
+        tuner::tune(tuner::TUNER_MODE_CENTER, gui::waterfall.selectedVFO, MODE_S_DEFAULT_FREQ);  
+
+        _this->decoder.init(ModeSPage::getInstance().getContext(), sigpath::sourceManager.getSelectedSource()->stream);  
+        _this->decoder.start();  
+
+        gui::mainWindow.setPlayState(true);  
+
+        ModeSPage::getInstance().addLog("Start");  
 	}
 	
 	static void onStop(ModeSDecoderModule* _this) {
@@ -103,31 +115,31 @@ private:
 		//_this->decoder.stop();
 
 		gui::mainWindow.setPlayState(false);
-
-		gui::waterfall.setCenterFrequency(_this->oldTuningFreq);
-
-		core::modComManager.callInterface("RTL-SDR", RTL_SDR_SOURCE_IFACE_CMD_SET_SAMPLE_RATE_INDEX, &_this->oldSampleRateId, NULL);
-
-		if (_this->radioWasEnabled) {
+		
+        if (_this->radioWasEnabled) {
 			core::moduleManager.enableInstance("Radio");
 		}
+
+        core::modComManager.callInterface("RTL-SDR", RTL_SDR_SOURCE_IFACE_CMD_SET_SAMPLE_RATE_INDEX, &_this->savedSampleRateId, NULL);
+
+        gui::waterfall.selectedVFO = _this->savedSelectedVFO;
+        
+        if (gui::waterfall.selectedVFO != "") {
+            ImGui::WaterfallVFO* vfo = gui::waterfall.vfos[gui::waterfall.selectedVFO];
+            vfo->generalOffset = _this->savedSelectedVFOOffset;
+        }
+        
+        gui::mainWindow.setTuningMode(_this->savedTuningMode);
+        tuner::tune(_this->savedTuningMode, gui::waterfall.selectedVFO, _this->savedFreq);
 
 		if (_this->rtlSdrWasRunning) {
 			gui::mainWindow.setPlayState(true);
 		}
-		
-		// Save restored frequency here
-        core::configManager.acquire();
-        core::configManager.conf["frequency"] = gui::waterfall.getCenterFrequency();
-        ImGui::WaterfallVFO* vfo = NULL;
-        if (gui::waterfall.selectedVFO != "") {
-            vfo = gui::waterfall.vfos[gui::waterfall.selectedVFO];
-        }
-        if (vfo != NULL) {
-            core::configManager.conf["vfoOffsets"][gui::waterfall.selectedVFO] = vfo->generalOffset;
-        }
-        core::configManager.release(true);
-		
+
+        gui::mainWindow.waterfallLocked = false;
+        gui::mainWindow.freqSelectLocked = false;
+        gui::mainWindow.tuningModeLocked = false;
+
 		ModeSPage::getInstance().addLog("Stop");
 	}
 
@@ -170,8 +182,11 @@ private:
     bool run = false;
     bool radioWasEnabled = false;
     bool rtlSdrWasRunning = false;
-    int oldSampleRateId = 0;
-    double oldTuningFreq = 0;
+    int savedSampleRateId = 0;
+    double savedFreq = 0;
+    int savedTuningMode;
+    std::string savedSelectedVFO;
+    double savedSelectedVFOOffset = 0.0f;
 
     dsp::ModeSDecoder decoder;
 };
