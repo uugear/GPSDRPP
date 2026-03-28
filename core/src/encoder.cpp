@@ -26,7 +26,6 @@ Encoder::Encoder(int pinA, int pinB, int pinC)
       direction(0),
       speed(1),
       changingDirection(0),
-      speedingUp(0),
       lastDownUpEvent(0) {}
 
 Encoder::~Encoder() {
@@ -89,45 +88,49 @@ long long Encoder::getTimestamp() {
 }
 
 int Encoder::changeSpeed(long long dt) {
-    if (dt < 10) {
-        speedingUp++;
-        if (speedingUp > ENCODER_MAX_SPEED_UP_STEPS) {
-            speedingUp = 0;
-            return 1;
-        }
-        return 0;
+    if (dt <= 0) {
+        return 1;
     }
-    speedingUp = 0;
-    if (dt > 1000) return -4;
-    if (dt > 500) return -3;
-    if (dt > 200) return -2;
-    if (dt > 100) return -1;
-    return 0;
+
+    speedSamples[speedSampleIndex] = dt;
+    speedSampleIndex = (speedSampleIndex + 1) % ENCODER_SPEED_SAMPLE_COUNT;
+    if (speedSampleCount < ENCODER_SPEED_SAMPLE_COUNT) {
+        speedSampleCount++;
+    }
+
+    long long total = 0;
+    for (int i = 0; i < speedSampleCount; i++) {
+        total += speedSamples[i];
+    }
+    long long avgDt = total / speedSampleCount;
+
+    if (avgDt < 20) return 8;
+    if (avgDt < 40) return 4;
+    if (avgDt < 80) return 2;
+    return 1;
 }
 
 void Encoder::setDirection(int dir) {
     if (direction != dir) {
         sameDirectionCount = 0;
-    }
-    else {
+    } else {
         sameDirectionCount++;
     }
 
     tsCur = getTimestamp();
     bool valid = true;
     if (direction == dir) {
-        speed += changeSpeed(tsCur - tsPrev);
-        if (speed > 5) speed = 5;
-        if (speed < 1) speed = 1;
-    }
-    else {
+        speed = changeSpeed(tsCur - tsPrev);
+    } else {
         changingDirection++;
         if (changingDirection > ENCODER_MAX_CHANGING_DIRECTION_STEPS) {
             changingDirection = 0;
             direction = dir;
             speed = 1;
-        }
-        else {
+            speedSampleIndex = 0;
+            speedSampleCount = 0;
+            std::fill(std::begin(speedSamples), std::end(speedSamples), 0);
+        } else {
             valid = false;
         }
     }
@@ -136,8 +139,7 @@ void Encoder::setDirection(int dir) {
     if (valid) {
         if (dir == -1) {
             if (ccwCallback) ccwCallback(this);
-        }
-        else if (dir == 1) {
+        } else if (dir == 1) {
             if (cwCallback) cwCallback(this);
         }
     }
@@ -194,8 +196,7 @@ int Encoder::readPinValue(int pin) const {
 void Encoder::processMonitorEvent(int pin, int edge) {
     if (pin == pinC) {
         processClickEvent(edge);
-    }
-    else if (pin == pinA || pin == pinB) {
+    } else if (pin == pinA || pin == pinB) {
         processRotationEvent(pin, edge);
     }
 }
@@ -213,34 +214,27 @@ void Encoder::processRotationEvent(int pin, int edge) {
         if (edge == GPIO_RISING_EDGE && va > _va) {
             if (vb == 0 && cwCallback) {
                 setDirection(-1);
-            }
-            else if (vb != 0 && ccwCallback) {
+            } else if (vb != 0 && ccwCallback) {
                 setDirection(1);
             }
-        }
-        else if (va < _va) {
+        } else if (va < _va) {
             if (vb == 1 && cwCallback) {
                 setDirection(-1);
-            }
-            else if (vb != 1 && ccwCallback) {
+            } else if (vb != 1 && ccwCallback) {
                 setDirection(1);
             }
         }
-    }
-    else if (pin == pinB && _vb != vb) {
+    } else if (pin == pinB && _vb != vb) {
         if (edge == GPIO_RISING_EDGE && vb > _vb) {
             if (va == 1 && cwCallback) {
                 setDirection(-1);
-            }
-            else if (va != 1 && ccwCallback) {
+            } else if (va != 1 && ccwCallback) {
                 setDirection(1);
             }
-        }
-        else if (vb < _vb) {
+        } else if (vb < _vb) {
             if (va == 0 && cwCallback) {
                 setDirection(-1);
-            }
-            else if (va != 0 && ccwCallback) {
+            } else if (va != 0 && ccwCallback) {
                 setDirection(1);
             }
         }
@@ -257,8 +251,7 @@ void Encoder::processClickEvent(int edge) {
             if (releasedCallback) {
                 releasedCallback(this);
             }
-        }
-        else if (edge == GPIO_FALLING_EDGE) {
+        } else if (edge == GPIO_FALLING_EDGE) {
             if (pressedCallback) {
                 pressedCallback(this);
             }
@@ -269,7 +262,15 @@ void Encoder::processClickEvent(int edge) {
 
 void Encoder::tuningFrequency(bool cw) {
     double snapInterval = sigpath::vfoManager.getSnapInterval(gui::waterfall.selectedVFO);
-    double deltaFreq = snapInterval * this->getSpeed() / 10;
+    double baseStep;
+    if (snapInterval >= 50000.0) {
+        baseStep = snapInterval / 10.0;
+    } else if (snapInterval >= 5000.0) {
+        baseStep = snapInterval / 5.0;
+    } else {
+        baseStep = snapInterval / 2.0;
+    }
+    double deltaFreq = baseStep * this->getSpeed();
     double centerFreq = gui::waterfall.getCenterFrequency();
     if (cw) {
         double upperOffset = sigpath::vfoManager.getUpperOffset(gui::waterfall.selectedVFO);
@@ -278,22 +279,19 @@ void Encoder::tuningFrequency(bool cw) {
             centerFreq += deltaFreq;
             gui::waterfall.setCenterFrequency(centerFreq);
             gui::waterfall.centerFreqMoved = true;
-        }
-        else {
+        } else {
             double offset = sigpath::vfoManager.getOffset(gui::waterfall.selectedVFO);
             offset += deltaFreq;
             sigpath::vfoManager.setOffset(gui::waterfall.selectedVFO, offset);
         }
-    }
-    else {
+    } else {
         double lowerOffset = sigpath::vfoManager.getLowerOffset(gui::waterfall.selectedVFO);
         double lowerFreq = gui::waterfall.getLowerFrequency();
         if (core::configManager.conf["centerTuning"] || centerFreq + lowerOffset - deltaFreq <= lowerFreq) {
             centerFreq -= deltaFreq;
             gui::waterfall.setCenterFrequency(centerFreq);
             gui::waterfall.centerFreqMoved = true;
-        }
-        else {
+        } else {
             double offset = sigpath::vfoManager.getOffset(gui::waterfall.selectedVFO);
             offset -= deltaFreq;
             sigpath::vfoManager.setOffset(gui::waterfall.selectedVFO, offset);
@@ -302,21 +300,20 @@ void Encoder::tuningFrequency(bool cw) {
 }
 
 void Encoder::frequencyRuler(bool cw) {
-    double snapInterval = sigpath::vfoManager.getSnapInterval(gui::waterfall.selectedVFO);
     double frequency = core::configManager.conf["frequency"];
-    double offset = snapInterval * this->getSpeed() / 2.0;
+    double visibleRange = gui::waterfall.getViewBandwidth();
+    double baseStep = visibleRange / 40.0;
+    double offset = baseStep * this->getSpeed();
     if (cw) {
         frequency -= offset;
-    }
-    else {
+    } else {
         frequency += offset;
     }
     core::configManager.conf["frequency"] = frequency;
     tuner::normalTuning("", frequency);
     if (core::configManager.conf["centerTuning"]) {
         gui::waterfall.centerFreqMoved = true;
-    }
-    else {
+    } else {
         double offset2 = sigpath::vfoManager.getOffset(gui::waterfall.selectedVFO);
         sigpath::vfoManager.setOffset(gui::waterfall.selectedVFO, offset2);
     }
@@ -349,8 +346,7 @@ void Encoder::demodulation(bool cw) {
         }
         if (index == -1) {
             index = 0;
-        }
-        else {
+        } else {
             index += cw ? 1 : -1;
             index = std::max<int>(0, std::min<int>(index, demodulation_modes_count - 1));
         }
@@ -370,23 +366,23 @@ void Encoder::volume(bool cw) {
 
 void Encoder::onRotate(int func, bool cw) {
     switch (func) {
-        case ENCODER_FUNC_TUNING_FREQUENCY:
-            tuningFrequency(cw);
-            break;
-        case ENCODER_FUNC_FREQUENCY_RULER:
-            frequencyRuler(cw);
-            break;
-        case ENCODER_FUNC_ZOOMING:
-            zooming(cw);
-            break;
-        case ENCODER_FUNC_DEMODULATION:
-            demodulation(cw);
-            break;
-        case ENCODER_FUNC_VOLUME:
-            volume(cw);
-            break;
-        default:
-            printf("Unknown encoder function: %d", func);
-            break;
+    case ENCODER_FUNC_TUNING_FREQUENCY:
+        tuningFrequency(cw);
+        break;
+    case ENCODER_FUNC_FREQUENCY_RULER:
+        frequencyRuler(cw);
+        break;
+    case ENCODER_FUNC_ZOOMING:
+        zooming(cw);
+        break;
+    case ENCODER_FUNC_DEMODULATION:
+        demodulation(cw);
+        break;
+    case ENCODER_FUNC_VOLUME:
+        volume(cw);
+        break;
+    default:
+        printf("Unknown encoder function: %d", func);
+        break;
     }
 }

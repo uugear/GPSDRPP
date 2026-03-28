@@ -60,7 +60,7 @@ Maintainer: UUGear
 Homepage: https://github.com/uugear/GPSDRPP
 Architecture: ${ARCH}
 Installed-Size: ${INSTALLED_SIZE}
-Depends: libglfw3,libvolk2-bin,librtlsdr0,librtaudio6
+Depends: libglfw3,libvolk2-bin,librtlsdr0,librtaudio6,libopengl0
 Description: Receiver software for VU GPSDR, based on SDR++
 CONTROL
 

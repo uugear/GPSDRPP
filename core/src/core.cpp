@@ -31,107 +31,109 @@
 #endif
 
 namespace core {
-    
-    VUGPSDR_Initializer g_vugpsdr_initializer;
-    VUGPSDR_Initializer::VUGPSDR_Initializer() {
-        
-        // turn on the device
-        flog::info("VU GPSDR power on");
-        system(CORE_CMD_POWER_ALT_0);
-        system(CORE_CMD_POWER_MODE_OUT);
-        system(CORE_CMD_POWER_SET_LOW);
-		
-    	// make sure user can access I2C device
-    	flog::info("Check permissions for accessing I2C device...");
-    	FILE* fp = fopen(GPS_I2C_BUS, "r+");
-        if (fp) {
-            flog::info("Current user can access I2C device.");
-            fclose(fp);
-        } else {
-            flog::info("Current user can NOT access I2C device.");
-            system("sudo usermod -a -G i2c $USER");
-            flog::info("Added current user to 'i2c' group.");
-            system("sudo newgrp i2c");
-    	}
-    }
-    
-    ConfigManager configManager;
-    ModuleManager moduleManager;
-    ModuleComManager modComManager;
-    CommandArgsParser args;
-    Gps gps;
-    Si5351 si5351;
-    UpConverter upConverter;
 
-    void setInputSampleRate(double samplerate) {
-        // Forward this to the server
-        if (args["server"].b()) { server::setInputSampleRate(samplerate); return; }
-        
-        // Update IQ frontend input samplerate and get effective samplerate
-        sigpath::iqFrontEnd.setSampleRate(samplerate);
-        double effectiveSr  = sigpath::iqFrontEnd.getEffectiveSamplerate();
-        
-        // Reset zoom
-        gui::waterfall.setBandwidth(effectiveSr);
-        gui::waterfall.setViewOffset(0);
-        gui::waterfall.setViewBandwidth(effectiveSr);
-        WaterfallView::getInstance().setBandwidth(1.0);
+VUGPSDR_Initializer g_vugpsdr_initializer;
+VUGPSDR_Initializer::VUGPSDR_Initializer() {
 
-        // Debug logs
-        flog::info("New DSP samplerate: {0} (source samplerate is {1})", effectiveSr, samplerate);
+    // turn on the device
+    flog::info("VU GPSDR power on");
+    system(CORE_CMD_POWER_ALT_0);
+    system(CORE_CMD_POWER_MODE_OUT);
+    system(CORE_CMD_POWER_SET_LOW);
+
+    // make sure user can access I2C device
+    flog::info("Check permissions for accessing I2C device...");
+    FILE* fp = fopen(GPS_I2C_BUS, "r+");
+    if (fp) {
+        flog::info("Current user can access I2C device.");
+        fclose(fp);
+    } else {
+        flog::info("Current user can NOT access I2C device.");
+        system("sudo usermod -a -G i2c $USER");
+        flog::info("Added current user to 'i2c' group.");
+        system("sudo newgrp i2c");
     }
-    
-    namespace encoders {
-        // Callback when encoder A rotate clockwise
-        void on_encoder_a_cw(Encoder *enc) {
-            if (!gui::funcSelectA.isVisible()) {
-        	    enc->onRotate(gui::funcSelectA.getSel(), true);
-        	}
-        }
-        
-        // Callback when encoder A rotate counter-clockwise
-        void on_encoder_a_ccw(Encoder *enc) {
-            if (!gui::funcSelectA.isVisible()) {
-        	    enc->onRotate(gui::funcSelectA.getSel(), false);
-        	}
-        }
-        
-        // Callback when encoder A is pressed
-        void on_encoder_a_pressed(Encoder *enc) {
-            // do nothing
-        }
-        
-        // Callback when encoder A is released
-        void on_encoder_a_released(Encoder *enc) {
-			gui::funcSelectA.setVisible(true);
-        }
-        
-        // Callback when encoder B rotate clockwise
-        void on_encoder_b_cw(Encoder *enc) {
-            if (!gui::funcSelectB.isVisible()) {
-                enc->onRotate(gui::funcSelectB.getSel(), true);
-            }
-        }
-        
-        // Callback when encoder B rotate counter-clockwise
-        void on_encoder_b_ccw(Encoder *enc) {
-            if (!gui::funcSelectB.isVisible()) {
-                enc->onRotate(gui::funcSelectB.getSel(), false);
-            }
-        }
-        
-        // Callback when encoder B is pressed
-        void on_encoder_b_pressed(Encoder *enc) {
-            // do nothing
-        }
-        
-        // Callback when encoder B is released
-        void on_encoder_b_released(Encoder *enc) {
-			gui::funcSelectB.setVisible(true);
-        }
+}
+
+ConfigManager configManager;
+ModuleManager moduleManager;
+ModuleComManager modComManager;
+CommandArgsParser args;
+Gps gps;
+Si5351 si5351;
+UpConverter upConverter;
+
+void setInputSampleRate(double samplerate) {
+    // Forward this to the server
+    if (args["server"].b()) {
+        server::setInputSampleRate(samplerate);
+        return;
     }
+
+    // Update IQ frontend input samplerate and get effective samplerate
+    sigpath::iqFrontEnd.setSampleRate(samplerate);
+    double effectiveSr  = sigpath::iqFrontEnd.getEffectiveSamplerate();
+
+    // Reset zoom
+    gui::waterfall.setBandwidth(effectiveSr);
+    gui::waterfall.setViewOffset(0);
+    gui::waterfall.setViewBandwidth(effectiveSr);
+    WaterfallView::getInstance().setBandwidth(1.0);
+
+    // Debug logs
+    flog::info("New DSP samplerate: {0} (source samplerate is {1})", effectiveSr, samplerate);
+}
+
+namespace encoders {
+// Callback when encoder A rotate clockwise
+void on_encoder_a_cw(Encoder *enc) {
+    if (!gui::funcSelectA.isVisible()) {
+        enc->onRotate(gui::funcSelectA.getSel(), true);
+    }
+}
+
+// Callback when encoder A rotate counter-clockwise
+void on_encoder_a_ccw(Encoder *enc) {
+    if (!gui::funcSelectA.isVisible()) {
+        enc->onRotate(gui::funcSelectA.getSel(), false);
+    }
+}
+
+// Callback when encoder A is pressed
+void on_encoder_a_pressed(Encoder *enc) {
+    // do nothing
+}
+
+// Callback when encoder A is released
+void on_encoder_a_released(Encoder *enc) {
+    gui::funcSelectA.setVisible(true);
+}
+
+// Callback when encoder B rotate clockwise
+void on_encoder_b_cw(Encoder *enc) {
+    if (!gui::funcSelectB.isVisible()) {
+        enc->onRotate(gui::funcSelectB.getSel(), true);
+    }
+}
+
+// Callback when encoder B rotate counter-clockwise
+void on_encoder_b_ccw(Encoder *enc) {
+    if (!gui::funcSelectB.isVisible()) {
+        enc->onRotate(gui::funcSelectB.getSel(), false);
+    }
+}
+
+// Callback when encoder B is pressed
+void on_encoder_b_pressed(Encoder *enc) {
+    // do nothing
+}
+
+// Callback when encoder B is released
+void on_encoder_b_released(Encoder *enc) {
+    gui::funcSelectB.setVisible(true);
+}
+}
 };
-
 
 // main
 int gpsdrpp_main(int argc, char* argv[]) {
@@ -139,14 +141,16 @@ int gpsdrpp_main(int argc, char* argv[]) {
 
     // Define command line options and parse arguments
     core::args.defineAll();
-    if (core::args.parse(argc, argv) < 0) { return -1; } 
+    if (core::args.parse(argc, argv) < 0) {
+        return -1;
+    }
 
     // Show help and exit if requested
     if (core::args["help"].b()) {
         core::args.showHelp();
         return 0;
     }
-    
+
     // Tell GPS to output 24MHz timepulse
     core::gps.outputReferenceClock(false);
 
@@ -167,10 +171,10 @@ int gpsdrpp_main(int argc, char* argv[]) {
         flog::error("{0} is not a directory", root);
         return -1;
     }
-	
-	flog::info("Root directory is: {0}", root);
-	
-	MapView::getInstance().setRootPath(root);
+
+    flog::info("Root directory is: {0}", root);
+
+    MapView::getInstance().setRootPath(root);
 
     // ======== DEFAULT CONFIG ========
     json defConfig;
@@ -198,13 +202,13 @@ int gpsdrpp_main(int argc, char* argv[]) {
     defConfig["fullWaterfallUpdate"] = false;
     defConfig["maximized"] = false;
     defConfig["fullscreen"] = true;
-    
+
     // Side Bar
     defConfig["selectedPage"] = 0;
-    
+
     // GPS Page
     defConfig["lockToGpsFreq"] = false;
-    
+
     // CLK OUT Page
     defConfig["clkOut"] = true;
     defConfig["reg58"] = 0;
@@ -216,22 +220,22 @@ int gpsdrpp_main(int argc, char* argv[]) {
     defConfig["reg64"] = 0;
     defConfig["reg65"] = 0;
     defConfig["strength"] = 2;
-	
-	// Main View
-	defConfig["selectedTab"] = 0;
-	
-	// Waterfall View
-	defConfig["min"] = -120.0;
-	defConfig["max"] = 0.0;
-	defConfig["fftHeight"] = 300;
-	
-	// Map View
-	defConfig["tileServer"] = "https://tile.openstreetmap.org/";
-	defConfig["zoom"] = 19;
-	defConfig["panLon"] = 0.0;
-	defConfig["panLat"] = 0.0;
-	defConfig["longitude"] = 0.0;
-	defConfig["latitude"] = 0.0;
+
+    // Main View
+    defConfig["selectedTab"] = 0;
+
+    // Waterfall View
+    defConfig["min"] = -120.0;
+    defConfig["max"] = 0.0;
+    defConfig["fftHeight"] = 300;
+
+    // Map View
+    defConfig["tileServer"] = "https://tile.openstreetmap.org/";
+    defConfig["zoom"] = 19;
+    defConfig["panLon"] = 0.0;
+    defConfig["panLat"] = 0.0;
+    defConfig["longitude"] = 0.0;
+    defConfig["latitude"] = 0.0;
 
     // Menu
     defConfig["menuElements"] = json::array();
@@ -259,7 +263,7 @@ int gpsdrpp_main(int argc, char* argv[]) {
 
     defConfig["menuElements"][7]["name"] = "Display";
     defConfig["menuElements"][7]["open"] = true;
-	
+
     defConfig["menuElements"][8]["name"] = "Mode S";
     defConfig["menuElements"][8]["open"] = true;
 
@@ -271,7 +275,7 @@ int gpsdrpp_main(int argc, char* argv[]) {
     defConfig["moduleInstances"]["Audio Sink"] = "audio_sink";
     defConfig["moduleInstances"]["Radio"] = "radio";
     defConfig["moduleInstances"]["Mode S"]["module"] = "mode_s_decoder";
-	defConfig["moduleInstances"]["Mode S"]["enabled"] = true;
+    defConfig["moduleInstances"]["Mode S"]["enabled"] = true;
     defConfig["moduleInstances"]["Frequency Manager"] = "frequency_manager";
     defConfig["moduleInstances"]["Recorder"] = "recorder";
 
@@ -285,7 +289,7 @@ int gpsdrpp_main(int argc, char* argv[]) {
     defConfig["offsetMode"] = (int)0; // Off
     defConfig["offset"] = 0.0;
     defConfig["showMenu"] = false;
-	defConfig["showSidebar"] = true;
+    defConfig["showSidebar"] = true;
     defConfig["showWaterfall"] = true;
     defConfig["source"] = "";
     defConfig["decimationPower"] = 0;
@@ -334,20 +338,24 @@ int gpsdrpp_main(int argc, char* argv[]) {
 
     // Update to new module representation in config if needed
     for (auto [_name, inst] : core::configManager.conf["moduleInstances"].items()) {
-        if (!inst.is_string()) { continue; }
+        if (!inst.is_string()) {
+            continue;
+        }
         std::string mod = inst;
         json newMod;
         newMod["module"] = mod;
         newMod["enabled"] = true;
         core::configManager.conf["moduleInstances"][_name] = newMod;
     }
-	
-	// Force fullscreen at start
-	core::configManager.conf["fullscreen"] = true;
+
+    // Force fullscreen at start
+    core::configManager.conf["fullscreen"] = true;
 
     core::configManager.release(true);
 
-    if (serverMode) { return server::main(); }
+    if (serverMode) {
+        return server::main();
+    }
 
     core::configManager.acquire();
     std::string resDir = core::configManager.conf["resourcesDirectory"];
@@ -363,18 +371,24 @@ int gpsdrpp_main(int argc, char* argv[]) {
 
     // Initialize backend
     int biRes = backend::init(resDir);
-    if (biRes < 0) { return biRes; }
+    if (biRes < 0) {
+        return biRes;
+    }
 
     // Initialize SmGui in normal mode
     SmGui::init(false);
 
-    if (!style::loadFonts(resDir)) { return -1; }
+    if (!style::loadFonts(resDir)) {
+        return -1;
+    }
     thememenu::init(resDir);
     LoadingScreen::init();
 
     LoadingScreen::show("Loading icons");
     flog::info("Loading icons");
-    if (!icons::load(resDir)) { return -1; }
+    if (!icons::load(resDir)) {
+        return -1;
+    }
 
     LoadingScreen::show("Loading band plans");
     flog::info("Loading band plans");
@@ -383,11 +397,11 @@ int gpsdrpp_main(int argc, char* argv[]) {
     LoadingScreen::show("Loading band plan colors");
     flog::info("Loading band plans color table");
     bandplan::loadColorTable(bandColors);
-    
+
     // Initialize Si5351 to output correct clock
     core::si5351.initialize();
-    
-	// Initialize encoders
+
+    // Initialize encoders
     LoadingScreen::show("Initializing encoders");
     flog::info("Initializing encoders");
     system(CORE_CMD_ENCODER_AA_ALT_0);
@@ -412,9 +426,9 @@ int gpsdrpp_main(int argc, char* argv[]) {
     encoderB.start();
 
     gui::mainWindow.init();
-	
-	DeviceRefreshWorker worker;
-	worker.start();
+
+    DeviceRefreshWorker worker;
+    worker.start();
 
     flog::info("Ready.");
 
@@ -422,7 +436,7 @@ int gpsdrpp_main(int argc, char* argv[]) {
     backend::renderLoop();
 
     ModeSPage::getInstance().deinit();
-        
+
     gui::mainWindow.deinit();
 
     // Shut down all modules
@@ -434,14 +448,14 @@ int gpsdrpp_main(int argc, char* argv[]) {
     backend::end();
 
     sigpath::iqFrontEnd.stop();
-    
+
     core::configManager.disableAutoSave();
     core::configManager.save();
 
     encoderA.stop();
     encoderB.stop();
-	
-	worker.stop();
+
+    worker.stop();
 
     flog::info("Exiting successfully");
     return 0;

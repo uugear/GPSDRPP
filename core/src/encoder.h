@@ -8,7 +8,7 @@
 #include "vgplib.h"
 
 #define ENCODER_MAX_CHANGING_DIRECTION_STEPS    2
-#define ENCODER_MAX_SPEED_UP_STEPS              3
+#define ENCODER_SPEED_SAMPLE_COUNT              4
 
 #define ENCODER_FUNC_TUNING_FREQUENCY           0
 #define ENCODER_FUNC_FREQUENCY_RULER            1
@@ -64,9 +64,11 @@ private:
     int va{-1}, vb{-1};
     int pinA, pinB, pinC;
     int direction;   // ccw=-1, none=0, cw=1
-    int speed;       // max=5, min=1
+    int speed;       // dynamic multiplier: 1, 2, 4, 8
     int changingDirection;
-    int speedingUp;
+    long long speedSamples[ENCODER_SPEED_SAMPLE_COUNT] {};
+    int speedSampleIndex{0};
+    int speedSampleCount{0};
     int lastDownUpEvent;
     int sameDirectionCount = 0;
     long long tsStart{};
